@@ -19,35 +19,36 @@
 # Change the file extension to match the format (.xml for XML, etc...)
 #
 ###
-title: "TODO - Your title"
-abbrev: "TODO - Abbreviation"
-category: info
+title: "OAuth Client Challenge Protocol"
+category: std
 
-docname: draft-todo-yourname-protocol-latest
+docname: draft-kahrer-oauth-client-challenge-protocol-latest # Used to create datatracker link
 submissiontype: IETF  # also: "independent", "editorial", "IAB", or "IRTF"
 number:
 date:
 consensus: true
 v: 3
-area: AREA
-workgroup: WG Working Group
+area: SEC 
+workgroup: TBD
 keyword:
- - next generation
- - unicorn
- - sparkling distributed ledger
-venue:
-  group: WG
-  type: Working Group
-  mail: WG@example.com
-  arch: https://example.com/WG
-  github: USER/REPO
-  latest: https://example.com/LATEST
+ - oauth
+ - client
+ - client challenge
+ - additional input
+venue: # About this Document (to be removed before publishing as an RFC)
+  #group: WG # Abbreviation of Working or Research Group that this draft targets or that accepted the individual draft
+  #type: Working Group # WG on IETF, RG on IRTF
+  #mail: WG@example.com # Mailing list for discussions
+  #home: # Link to more documentation or project home
+  #arch: https://example.com/WG # Archive for (mail) discussions
+  github: curityio/ietf-draft-oauth-client-challenge-protocol # Source for this draft and issue tracker
+  #latest: https://example.com/LATEST # Where to find the latest revision of this draft (github pages)
 
 author:
  -
-    fullname: Your Name Here
-    organization: Your Organization Here
-    email: your.email@example.com
+    fullname: Judith Kahrer
+    organization: Curity
+    email: judith.kahrer@curity.io
 
 normative:
 
