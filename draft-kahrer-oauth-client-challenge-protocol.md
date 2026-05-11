@@ -8,21 +8,21 @@ number:
 date:
 consensus: true
 v: 3
-area: SEC 
-workgroup: TBD
+area: "Security"
+workgroup: "Web Authorization Protocol"
 keyword:
  - oauth
  - client
  - client challenge
  - additional input
 venue: # About this Document (to be removed before publishing as an RFC)
-  #group: WG # Abbreviation of Working or Research Group that this draft targets or that accepted the individual draft
-  #type: Working Group # WG on IETF, RG on IRTF
-  #mail: WG@example.com # Mailing list for discussions
+  group: "Web Authorization Protocol"
+  type: "Working Group"
+  mail: "oauth@ietf.org"
   #home: # Link to more documentation or project home
-  #arch: https://example.com/WG # Archive for (mail) discussions
-  github: curityio/ietf-draft-oauth-client-challenge-protocol # Source for this draft and issue tracker
-  #latest: https://example.com/LATEST # Where to find the latest revision of this draft (github pages)
+  arch: "https://mailarchive.ietf.org/arch/browse/oauth/"
+  github: "curityio/ietf-draft-oauth-client-challenge-protocol"
+  latest: "https://curityio.github.io/ietf-draft-oauth-client-challenge-protocol/draft-kahrer-oauth-client-challenge-protocol.html"
 
 author:
  -
