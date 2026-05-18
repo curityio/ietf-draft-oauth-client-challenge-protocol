@@ -78,15 +78,18 @@ The extension in this document is different because it assumes that the client c
 
 ### Just-in-Time Authorization
 
-Traditional OAuth 2.0 flows resolve all authorization decisions before the client calls the Token Endpoint.
-However, certain policy frameworks — notably those aligned with Zero Trust Architecture or dynamic risk-based access control — require the authorization server to evaluate context that becomes available only at the moment of the token request. This document calls that pattern *just-in-time authorization*.
+Whether and in which form an authorization server may return an access token to a client depends not only on the presented grant and requested access but also on the capabilities of the client, e.g., whether it is a public client or a confidential client, whether it is a first-party client or a third-party client. Just-in-time authorization means that the authorization server can, dynamically and on demand, evaluate necessary data from different sources to accept or deny a token request from a client.
 
 In a just-in-time flow, the authorization server defers its final authorization decision, challenges the client for supplemental proof material, and only then either grants or denies the request.
 
-### client Authentication Step-Up
+### Client Authentication Step-Up
 
-An authorization server may accept client authentication for low-assurance token types but require an attestation for tokens granting elevated privileges (see ({{?I-D.ietf-oauth-attestation-based-client-auth}})).
+An authorization server may accept client authentication for low-assurance tokens but require an attestation for tokens granting elevated privileges (see ({{?I-D.ietf-oauth-attestation-based-client-auth}})).
 The `insufficient_client_authorization` mechanism allows the authorization server to escalate the authentication requirement without the client needing to speculatively include high-assurance credentials on every request.
+
+### Continuos Authorization
+
+The security state of a system can change at any time. Systems may communicate via signals about certain security-relevant events that they observed for other systems to adopt. In such an environment the authorization server may receive signals that constitute the need for additional input for authorization to e.g., mitigate attacks and prevent misuse.
 
 # Conventions and Definitions
 
@@ -116,7 +119,7 @@ The following content applies to the Insufficient Client Authorization Response.
 - `error`: REQUIRED. The `error` parameter MUST be `insufficient_client_authorization`.
 - `authorization_requirement`: REQUIRED. The `authorization_requirement` parameter is a typed JSON object as defined in {{authorization-requirement}}.
 
-The authorization server MUST comply with Section 5.2 of {{RFC6749}}. This implies that the authorization server MUST respond with HTTP status code `400 (Bad Request)`. It MAY include other parameters in the response. The client MUST ignore any parameters it does not understand.
+The authorization server MUST comply with Section 5.2 of {{RFC6749}}. The authorization server SHOULD respond with HTTP status code `403 (Forbidden)`. It MAY include other parameters in the response. The client MUST ignore any parameters it does not understand.
 
 If the client does not understand or cannot satisfy the Authorization Requirement, it MUST treat the Insufficient Client Authorization Response as if the authorization server returned an `unauthorized_client` error.
 
@@ -129,7 +132,7 @@ The Insufficient Client Authorization Response indicates the following:
 The following represents a non-normative example of an Insufficient Client Authorization Response.
 
 ~~~
-HTTP/1.1 400 Bad Request
+HTTP/1.1 403 Forbidden
 Content-Type: application/json
 Cache-Control: no-store
 
@@ -165,7 +168,7 @@ The following members are defined for all `authorization_requirement` types:
 
 Each profile of this document that specifies a type of Authorization Requirement also MUST define how the client can fulfill the challenge and provide the required input to the authorization server.
 
-If the client does not understand the `type` of the `authorization_requirement` of an Insufficient Client Authorization Response or if it cannot satisfy the requirements, the client MUST treat the Insufficient Client Authorization Response as if the authorization server returned an `unauthorized_client` error as defined in Section 5.2 in {{!RFC6749}}, see also {{error-response}}.
+If the client does not understand the `type` of the `authorization_requirement` of an Insufficient Client Authorization Response or if it cannot satisfy the requirement, the client MUST treat the Insufficient Client Authorization Response as if the authorization server returned an `unauthorized_client` error as defined in Section 5.2 in {{!RFC6749}}, see also {{error-response}}.
 
 Some extensions to OAuth 2.0, notably Pushed Authorization Requests {{?RFC9126}}, make use of the token endpoint response outside a token endpoint request. A profile that defines an Authorization Requirement type SHOULD define mechanisms to fulfill the requirements that are applicable to authorization and token requests alike.
 
@@ -181,6 +184,45 @@ TODO Security
 TODO: Update IANA actions. Add registration for `insufficient_client_authorization`, `authorization_requirement`.
 
 --- back
+
+# Appendix
+{:numbered="false"}
+
+## Example with Authorization Details
+{:numbered="false"}
+
+The following is an example that illustrates a token request using `authorization_details` as defined in {{?RFC9396}}.
+The authorization details indicate that the client aims to operate in an open banking ecosystem that has certain requirements.
+
+~~~
+POST /token HTTP/1.1
+Host: authorization-server.example
+Content-Type: application/x-www-form-urlencoded
+OAuth-Client-Attestation: eyJ0eXAiOiJvYX...
+DPoP: eyJ0eXAiOiJkcG9...
+
+grant_type=client_credentials&
+resource=https://api.openbanking.example&
+authorization_details=%5B%7B%22type%22%3A%22payment_initiation%22%2C%22actions%22%3A%5B%22initiate%22%2C%22status%22%2C%22cancel%22%5D%2C%22locations%22%3A%5B%22https%3A%2F%2Fapi.openbanking.example%2Fpayments%22%5D%2C%22instructedAmount%22%3A%7B%22currency%22%3A%22EUR%22%2C%22amount%22%3A%22123.50%22%7D%2C%22creditorName%22%3A%22Merchant%20A%22%2C%22creditorAccount%22%3A%7B%22iban%22%3A%22DE02100100109307118603%22%7D%2C%22remittanceInformationUnstructured%22%3A%22Ref%20Number%20Merchant%22%7D%5D
+
+~~~
+
+The client needs to prove that it complies with the requirements, so the authorization server challenges the client and responds with a Insufficient Client Authorization Response. The authorization server requests from the client the presentation of a verifiable credentials, e.g., a verifiable intent ([Verifiable Intent (VI) — Specification Overview](https://verifiableintent.dev/spec/)).
+
+~~~
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+Cache-Control: no-store
+
+{
+  "error": "insufficient_client_authorization",
+  "authorization_requirement": {
+    "type": "verifiable_presentation",
+    "challenge_session": "7f3d9e2a-4c1b-4f8e-b5a0-1e6c8d2f0a9b",
+    "presentation_definition": { ... }
+  }
+}
+~~~
 
 # Acknowledgments
 {:numbered="false"}
