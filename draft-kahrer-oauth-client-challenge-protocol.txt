@@ -8,18 +8,18 @@ Intended status: Standards Track                             18 May 2026
 Expires: 19 November 2026
 
 
-                    OAuth Client Challenge Protocol
+                    OAuth client Challenge Protocol
           draft-kahrer-oauth-client-challenge-protocol-latest
 
 Abstract
 
    This document extends the OAuth 2.0 token endpoint error response
    (RFC 6749) with a new error code that indicates to the client that it
-   must provide additional input for the Authorization Server to
+   must provide additional input for the authorization server to
    authorize it and accept its request.
 
    This mechanism enables just-in-time authorization flows in which the
-   Authorization Server dynamically challenges the Client during a
+   authorization server dynamically challenges the client during a
    request, for example, to obtain an assertion, a Verifiable
    Presentation, or other proof-of-possession material mid-flow without
    an end-user being present.
@@ -74,6 +74,7 @@ Table of Contents
      1.2.  Motivation and Use Cases
        1.2.1.  Just-in-Time Authorization
        1.2.2.  Client Authentication Step-Up
+       1.2.3.  Continuos Authorization
    2.  Conventions and Definitions
    3.  Terminology
    4.  Insufficient Client Authorization Response
@@ -84,48 +85,50 @@ Table of Contents
    9.  References
      9.1.  Normative References
      9.2.  Informative References
+   Appendix
+     Example with Authorization Details
    Acknowledgments
    Author's Address
 
 1.  Introduction
 
    The OAuth 2.0 Authorization Framework [RFC6749] assumes that whenever
-   a Resource Owner needs to provide a grant, the Client can trigger an
+   a Resource Owner needs to provide a grant, the client can trigger an
    interactive flow to get that grant which delegates access to the
-   Client.  Within those assumptions, the Authorization Server can
+   client.  Within those assumptions, the authorization server can
    utilize user prompts to increase the confidence in the grant because
    interactive flows imply that the Resource Owner is present.  However,
-   this is not always the case.  Clients may act on the behalf of a
+   this is not always the case. clients may act on the behalf of a
    Resource Owner without the Resource Owner being present.  In such
    cases, an interactive flow is not applicable to collect a grant or
    request additional input.
 
    The OAuth 2.0 Authorization Framework [RFC6749] also assumes that a
    single grant signaled through the grant_type parameter is sufficient
-   for the Authorization Server to authorize the Client.  It does not
-   define how the Authorization Server signals to the Client to provide
+   for the authorization server to authorize the client.  It does not
+   define how the authorization server signals to the client to provide
    additional input for it to make a decision - like an additional grant
    from the Resource Owner or an attestation artifact to prove the
-   Client's provenance.
+   client's provenance.
 
-   Real-world deployments increasingly require the Authorization Server
+   Real-world deployments increasingly require the authorization server
    to apply dynamic, contextual authorization policies — for example:
 
    *  Demanding a freshly signed client attestation when risk signals
       indicate an elevated threat level.
 
-   *  Requiring the Client to prove its mandate before a high-value
+   *  Requiring the client to prove its mandate before a high-value
       token is issued.
 
    This document extends the OAuth 2.0 Authorization Framework by
    introducing:
 
    1.  A new error code insufficient_client_authorization that the
-       Authorization Server returns when it cannot proceed without
+       authorization server returns when it cannot proceed without
        additional client-supplied material.
 
    2.  A companion response parameter authorization_requirement — a
-       typed JSON object that describes what the Authorization Server
+       typed JSON object that describes what the authorization server
        requires.
 
    3.  Processing rules for both parties, including the requirement to
@@ -135,56 +138,66 @@ Table of Contents
 1.1.  Comparison with OAuth 2.0 First-Party Applications
 
    OAuth 2.0 First-Party Applications [I-D.ietf-oauth-first-party-apps]
-   defines an API for user authentication where the Authorization Server
-   challenges the OAuth 2.0 Client to provide data from the user.  The
+   defines an API for user authentication where the authorization server
+   challenges the OAuth 2.0 client to provide data from the user.  The
    proposed API is similar to the mechanism defined in this document.
    However, there is a subtle difference: OAuth 2.0 First-Party
-   Applications defines a new error code for the Client to provide more
+   Applications defines a new error code for the client to provide more
    data from the end-user (Resource Owner).  Its main purpose is to
-   enable Clients to control the user experience.  For that it makes two
+   enable clients to control the user experience.  For that it makes two
    important assumptions:
 
-   *  The Client can interact with an end-user.
+   *  The client can interact with an end-user.
 
-   *  The Client is trusted to handle sensitive data like the end-user's
-      credentials, i.e., the Client is a first-party application.
+   *  The client is trusted to handle sensitive data like the end-user's
+      credentials, i.e., the client is a first-party application.
 
    The extension in this document is different because it assumes that
-   the Client can satisfy the challenge from the Authorization
+   the client can satisfy the challenge from the Authorization
    Requirement itself.  It is applicable for both first- and third-party
-   use cases where the Authorization Server challenges the Client to
+   use cases where the authorization server challenges the client to
    provide more input about itself without involving an end-user.  The
-   Client does not have to handle end-user credentials.  What's more, it
+   client does not have to handle end-user credentials.  What's more, it
    does not require an additional endpoint but extends the Token
    Response.  In this way, the extension specifically targets non-
-   interactive OAuth flows between the Client and Authorization Server.
+   interactive OAuth flows between the client and authorization server.
 
 1.2.  Motivation and Use Cases
 
 1.2.1.  Just-in-Time Authorization
 
-   Traditional OAuth 2.0 flows resolve all authorization decisions
-   before the Client calls the Token Endpoint.  However, certain policy
-   frameworks — notably those aligned with Zero Trust Architecture or
-   dynamic risk-based access control — require the Authorization Server
-   to evaluate context that becomes available only at the moment of the
-   token request.  This document calls that pattern _just-in-time
-   authorization_.
+   Whether and in which form an authorization server may return an
+   access token to a client depends not only on the presented grant and
+   requested access but also on the capabilities of the client, e.g.,
+   whether it is a public client or a confidential client, whether it is
+   a first-party client or a third-party client.  Just-in-time
+   authorization means that the authorization server can, dynamically
+   and on demand, evaluate necessary data from different sources to
+   accept or deny a token request from a client.
 
-   In a just-in-time flow, the Authorization Server defers its final
-   authorization decision, challenges the Client for supplemental proof
+   In a just-in-time flow, the authorization server defers its final
+   authorization decision, challenges the client for supplemental proof
    material, and only then either grants or denies the request.
 
 1.2.2.  Client Authentication Step-Up
 
-   An Authorization Server may accept client authentication for low-
-   assurance token types but require an attestation for tokens granting
+   An authorization server may accept client authentication for low-
+   assurance tokens but require an attestation for tokens granting
    elevated privileges (see
    ([I-D.ietf-oauth-attestation-based-client-auth])).  The
-   insufficient_client_authorization mechanism allows the Authorization
-   Server to escalate the authentication requirement without the Client
+   insufficient_client_authorization mechanism allows the authorization
+   server to escalate the authentication requirement without the client
    needing to speculatively include high-assurance credentials on every
    request.
+
+1.2.3.  Continuos Authorization
+
+   The security state of a system can change at any time.  Systems may
+   communicate via signals about certain security-relevant events that
+   they observed for other systems to adopt.  In such an environment the
+   authorization server may receive signals that constitute the need for
+   additional input for authorization to e.g., mitigate attacks and
+   prevent misuse.
 
 2.  Conventions and Definitions
 
@@ -197,7 +210,7 @@ Table of Contents
 3.  Terminology
 
    This document uses the terms "Access Token", "Authorization Code",
-   "Authorization Request", "Authorization Server", "Client", "Client
+   "Authorization Request", "authorization server", "client", "client
    Authentication", "Protected Resource", "Resource Server", "Token
    Response", and "Token Endpoint" as defined by the OAuth 2.0
    Authorization Framework [RFC6749], unless otherwise specified by this
@@ -206,16 +219,16 @@ Table of Contents
    In addition, the document uses the following terms:
 
    *Insufficient Client Authorization Response*:  An error response for
-      the OAuth 2.0 token endpoint that indicates to the Client that the
-      Authorization Server requires additional input for it to authorize
-      the Client.
+      the OAuth 2.0 token endpoint that indicates to the client that the
+      authorization server requires additional input for it to authorize
+      the client.
 
    *Authorization Requirement*:  A typed JSON object returned by the
-      Authorization Server in an Insufficient Client Authorization
-      Response that specifies the additional material the Client must
+      authorization server in an Insufficient Client Authorization
+      Response that specifies the additional material the client must
       supply.
 
-   *Challenge Session*:  A string managed by the Authorization Server
+   *Challenge Session*:  A string managed by the authorization server
       that serves as the nonce in the challenge-response pattern.  It
       associates an Insufficient Client Authorization Response with the
       subsequent request that satisfies it.
@@ -236,33 +249,32 @@ Table of Contents
       authorization_requirement parameter is a typed JSON object as
       defined in Section 5.
 
-   The Authorization Server MUST comply with Section 5.2 of [RFC6749].
-   This implies that the Authorization Server MUST respond with HTTP
-   status code 400 (Bad Request).  It MAY include other parameters in
-   the response.  The Client MUST ignore any parameters it does not
-   understand.
+   The authorization server MUST comply with Section 5.2 of [RFC6749].
+   The authorization server SHOULD respond with HTTP status code 403
+   (Forbidden).  It MAY include other parameters in the response.  The
+   client MUST ignore any parameters it does not understand.
 
-   If the Client does not understand or cannot satisfy the Authorization
+   If the client does not understand or cannot satisfy the Authorization
    Requirement, it MUST treat the Insufficient Client Authorization
-   Response as if the Authorization Server returned an
+   Response as if the authorization server returned an
    unauthorized_client error.
 
    The Insufficient Client Authorization Response indicates the
    following:
 
-   1.  The Authorization Server has determined that it cannot yet
-       authorize the Client or issue an access token.
+   1.  The authorization server has determined that it cannot yet
+       authorize the client or issue an access token.
 
-   2.  The condition is resolvable: the Authorization Server knows what
+   2.  The condition is resolvable: the authorization server knows what
        additional input would allow it to proceed.
 
-   3.  The Authorization Server wishes to challenge the client to supply
+   3.  The authorization server wishes to challenge the client to supply
        that input.
 
    The following represents a non-normative example of an Insufficient
    Client Authorization Response.
 
-   HTTP/1.1 400 Bad Request
+   HTTP/1.1 403 Forbidden
    Content-Type: application/json
    Cache-Control: no-store
 
@@ -278,8 +290,8 @@ Table of Contents
 5.  The authorization_requirement Object
 
    The authorization_requirement parameter holds a JSON object that
-   indicates what type of input the Authorization Server requires for
-   the Client to satisfy the insufficient client authorization.
+   indicates what type of input the authorization server requires for
+   the client to satisfy the insufficient client authorization.
 
    The following members are defined for all authorization_requirement
    types:
@@ -289,10 +301,10 @@ Table of Contents
       determines the semantics of other members in the object.
 
    *challenge_session* (string, REQUIRED):  An opaque identifier
-      generated by the Authorization Server that binds this
-      authorization challenge to the follow-up request.  The Client MUST
-      include this value in the subsequent request to the Authorization
-      Server if it receives one along with the
+      generated by the authorization server that binds this
+      authorization challenge to the follow-up request.  The client MUST
+      include this value in the subsequent request to the authorization
+      server if it receives one along with the
       insufficient_client_authorization error response.
 
    *expires_in* (integer, OPTIONAL):  Number of seconds from the time of
@@ -303,14 +315,14 @@ Table of Contents
 6.  Providing Authorization Requirement
 
    Each profile of this document that specifies a type of Authorization
-   Requirement also MUST define how the Client can fulfill the challenge
-   and provide the required input to the Authorization Server.
+   Requirement also MUST define how the client can fulfill the challenge
+   and provide the required input to the authorization server.
 
-   If the Client does not understand the type of the
+   If the client does not understand the type of the
    authorization_requirement of an Insufficient Client Authorization
-   Response or if it cannot satisfy the requirements, the Client MUST
+   Response or if it cannot satisfy the requirement, the client MUST
    treat the Insufficient Client Authorization Response as if the
-   Authorization Server returned an unauthorized_client error as defined
+   authorization server returned an unauthorized_client error as defined
    in Section 5.2 in [RFC6749], see also Section 4.
 
    Some extensions to OAuth 2.0, notably Pushed Authorization Requests
@@ -319,10 +331,10 @@ Table of Contents
    Requirement type SHOULD define mechanisms to fulfill the requirements
    that are applicable to authorization and token requests alike.
 
-   If the Authorization Server deems the supplied input from the Client
+   If the authorization server deems the supplied input from the client
    in response to an Authorization Requirement challenge as invalid and
-   if there is no other way for the Client to resolve the
-   insufficient_authorization error, the Authorization Server MUST
+   if there is no other way for the client to resolve the
+   insufficient_authorization error, the authorization server MUST
    respond with an unauthorized_client error.
 
 7.  Security Considerations
@@ -372,6 +384,50 @@ Table of Contents
               and F. Skokan, "OAuth 2.0 Pushed Authorization Requests",
               RFC 9126, DOI 10.17487/RFC9126, September 2021,
               <https://www.rfc-editor.org/rfc/rfc9126>.
+
+   [RFC9396]  Lodderstedt, T., Richer, J., and B. Campbell, "OAuth 2.0
+              Rich Authorization Requests", RFC 9396,
+              DOI 10.17487/RFC9396, May 2023,
+              <https://www.rfc-editor.org/rfc/rfc9396>.
+
+Appendix
+
+Example with Authorization Details
+
+   The following is an example that illustrates a token request using
+   authorization_details as defined in [RFC9396].  The authorization
+   details indicate that the client aims to operate in an open banking
+   ecosystem that has certain requirements.
+
+POST /token HTTP/1.1
+Host: authorization-server.example
+Content-Type: application/x-www-form-urlencoded
+OAuth-Client-Attestation: eyJ0eXAiOiJvYX...
+DPoP: eyJ0eXAiOiJkcG9...
+
+grant_type=client_credentials&
+resource=https://api.openbanking.example&
+authorization_details=%5B%7B%22type%22%3A%22payment_initiation%22%2C%22actions%22%3A%5B%22initiate%22%2C%22status%22%2C%22cancel%22%5D%2C%22locations%22%3A%5B%22https%3A%2F%2Fapi.openbanking.example%2Fpayments%22%5D%2C%22instructedAmount%22%3A%7B%22currency%22%3A%22EUR%22%2C%22amount%22%3A%22123.50%22%7D%2C%22creditorName%22%3A%22Merchant%20A%22%2C%22creditorAccount%22%3A%7B%22iban%22%3A%22DE02100100109307118603%22%7D%2C%22remittanceInformationUnstructured%22%3A%22Ref%20Number%20Merchant%22%7D%5D
+
+   The client needs to prove that it complies with the requirements, so
+   the authorization server challenges the client and responds with a
+   Insufficient Client Authorization Response.  The authorization server
+   requests from the client the presentation of a verifiable
+   credentials, e.g., a verifiable intent (Verifiable Intent (VI) —
+   Specification Overview (https://verifiableintent.dev/spec/)).
+
+   HTTP/1.1 403 Forbidden
+   Content-Type: application/json
+   Cache-Control: no-store
+
+   {
+     "error": "insufficient_client_authorization",
+     "authorization_requirement": {
+       "type": "verifiable_presentation",
+       "challenge_session": "7f3d9e2a-4c1b-4f8e-b5a0-1e6c8d2f0a9b",
+       "presentation_definition": { ... }
+     }
+   }
 
 Acknowledgments
 
