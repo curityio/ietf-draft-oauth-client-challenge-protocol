@@ -9,7 +9,7 @@ date:
 consensus: true
 v: 3
 area: "Security"
-workgroup: "Web Authorization Protocol"
+workgroup: TBD
 keyword:
  - oauth
  - client
@@ -39,26 +39,23 @@ informative:
 
 --- abstract
 
-This document extends the OAuth 2.0 token endpoint error response (RFC 6749) with a new error code that indicates to the client that it must provide additional input for the Authorization Server to authorize it and accept its request. 
+This document extends the OAuth 2.0 token endpoint error response (RFC 6749) with a new error code that indicates to the client that it must provide additional input for the Authorization Server to authorize it and accept its request.
 
-This mechanism enables just-in-time authorization flows in which the
-Authorization Server dynamically challenges the Client during a request,
-for example, to obtain an assertion, a Verifiable Presentation, or other
-proof-of-possession material mid-flow without an end-user being present.
+This mechanism enables just-in-time authorization flows in which the Authorization Server dynamically challenges the Client during a request, for example, to obtain an assertion, a Verifiable Presentation, or other proof-of-possession material mid-flow without an end-user being present.
 
 --- middle
 
 # Introduction
 
 The OAuth 2.0 Authorization Framework {{!RFC6749}} assumes that whenever a Resource Owner needs to provide a grant, the Client
-can trigger an interactive flow to get that grant which delegates access to the Client. Within those assumptions, the Authorization Server can utilize user prompts to increase the confidence in the grant because interactive flows imply that the Resource Owner is present. However, this is not always the case. Clients may act on a Resource Owner's behalf without the Resource Owner being present.
+can trigger an interactive flow to get that grant which delegates access to the Client. Within those assumptions, the Authorization Server can utilize user prompts to increase the confidence in the grant because interactive flows imply that the Resource Owner is present. However, this is not always the case. Clients may act on the behalf of a Resource Owner without the Resource Owner being present. In such cases, an interactive flow is not applicable to collect a grant or request additional input.
 
-The OAuth 2.0 Authorization Framework {{!RFC6749}} also assumes that a single grant signaled through the `grant_type` parameter is sufficient for the Authorization Server to authorize the Client. It does not define how the Authorization Server signals to the Client to provide additional input for it to make a decision - like an additional grant from the Resource Owner or an attestation artifact to prove its provenance.
+The OAuth 2.0 Authorization Framework {{!RFC6749}} also assumes that a single grant signaled through the `grant_type` parameter is sufficient for the Authorization Server to authorize the Client. It does not define how the Authorization Server signals to the Client to provide additional input for it to make a decision - like an additional grant from the Resource Owner or an attestation artifact to prove the Client's provenance.
 
 Real-world deployments increasingly require the Authorization Server to apply dynamic, contextual authorization policies — for example:
 
 - Demanding a freshly signed client attestation when risk signals indicate an elevated threat level.
-- Requiring the client to prove its mandate before a high-value token is issued.
+- Requiring the Client to prove its mandate before a high-value token is issued.
 
 This document extends the OAuth 2.0 Authorization Framework by introducing:
 
@@ -68,14 +65,14 @@ This document extends the OAuth 2.0 Authorization Framework by introducing:
 3. Processing rules for both parties, including the requirement to return
    `unauthorized_client` when subsequently provided input fails validation.
 
-## Comparison with OAuth 2.0 First-Party Applications 
+## Comparison with OAuth 2.0 First-Party Applications
 
-OAuth 2.0 First-Party Applications {{?draft-ietf-oauth-first-party-apps}} defines an API for user authentication where the Authorization Server challenges the OAuth 2.0 Client to provide data from the user. This allows Clients to provide built-in user experience and only depending on browser redirects as a fallback. The proposed API is similar to the mechanism defined in this document. However, there is a subtle difference: OAuth 2.0 First-Party Applications defines a new error code for the Client to provide more data from the end-user (Resource Owner). It makes two important assumptions:
+OAuth 2.0 First-Party Applications {{?I-D.ietf-oauth-first-party-apps}} defines an API for user authentication where the Authorization Server challenges the OAuth 2.0 Client to provide data from the user. The proposed API is similar to the mechanism defined in this document. However, there is a subtle difference: OAuth 2.0 First-Party Applications defines a new error code for the Client to provide more data from the end-user (Resource Owner). Its main purpose is to enable Clients to control the user experience. For that it makes two important assumptions:
 
 - The Client can interact with an end-user.
 - The Client is trusted to handle sensitive data like the end-user's credentials, i.e., the Client is a first-party application.
 
-The extension in this document is different because it assumes that the Client can satisfy the challenge from the Authorization Requirement itself. It is applicable for both first- and third-party use cases where the Authorization Server challenges the Client to provide more input about itself without involving an end-user. The Client does not have to handle end-user credentials. What's more, it does not require an additional endpoint but extends the Token Response.
+The extension in this document is different because it assumes that the Client can satisfy the challenge from the Authorization Requirement itself. It is applicable for both first- and third-party use cases where the Authorization Server challenges the Client to provide more input about itself without involving an end-user. The Client does not have to handle end-user credentials. What's more, it does not require an additional endpoint but extends the Token Response. In this way, the extension specifically targets non-interactive OAuth flows between the Client and Authorization Server.
 
 ## Motivation and Use Cases
 
@@ -88,7 +85,7 @@ In a just-in-time flow, the Authorization Server defers its final authorization 
 
 ### Client Authentication Step-Up
 
-An Authorization Server may accept client authentication for low-assurance token types but require an attestation ({{?draft-ietf-oauth-attestation-based-client-auth}}) for tokens granting elevated privileges.
+An Authorization Server may accept client authentication for low-assurance token types but require an attestation ({{?I-D.ietf-oauth-attestation-based-client-auth}}) for tokens granting elevated privileges.
 The `insufficient_client_authorization` mechanism allows the Authorization Server to escalate the authentication requirement without the Client needing to speculatively include high-assurance credentials on every request.
 
 # Conventions and Definitions
@@ -112,7 +109,7 @@ In addition, the document uses the following terms:
 
 # Insufficient Client Authorization Response (#error-response)
 
-This document registers the error code `insufficient_client_authorization` for use in OAuth 2.0 token endpoint error responses as defined in Section 5.2 of {{RFC6749}}. 
+This document registers the error code `insufficient_client_authorization` for use in OAuth 2.0 token endpoint error responses as defined in Section 5.2 of {{RFC6749}}.
 
 The following content applies to the Insufficient Client Authorization Response.
 
@@ -166,11 +163,13 @@ The following members are defined for all `authorization_requirement` types:
 
 # Providing Authorization Requirement
 
-Each profile of this document that specifies a type of Authorization Requirement also MUST define how the Client can fulfill the challenge and provide the required input to the Authorization Server. 
+Each profile of this document that specifies a type of Authorization Requirement also MUST define how the Client can fulfill the challenge and provide the required input to the Authorization Server.
 
 If the Client does not understand the `type` of the `authorization_requirement` of an Insufficient Client Authorization Response or if it cannot satisfy the requirements, the Client MUST treat the Insufficient Client Authorization Response as if the Authorization Server returned an `unauthorized_client` error as defined in Section 5.2 in {{!RFC6749}}, see also {#error-response}.
 
 Some extensions to OAuth 2.0, notably Pushed Authorization Requests {{?RFC9126}}, make use of the token endpoint response outside a token endpoint request. A profile that defines an Authorization Requirement type SHOULD define mechanisms to fulfill the requirements that are applicable to authorization and token requests alike.
+
+If the Authorization Server deems the supplied input from the Client in response to an Authorization Requirement challenge as invalid and if there is no other way for the Client to resolve the `insufficient_authorization` error, the Authorization Server MUST respond with an `unauthorized_client` error.
 
 # Security Considerations
 
