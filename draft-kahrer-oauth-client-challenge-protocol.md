@@ -85,7 +85,7 @@ In a just-in-time flow, the Authorization Server defers its final authorization 
 
 ### Client Authentication Step-Up
 
-An Authorization Server may accept client authentication for low-assurance token types but require an attestation ({{?I-D.ietf-oauth-attestation-based-client-auth}}) for tokens granting elevated privileges.
+An Authorization Server may accept client authentication for low-assurance token types but require an attestation for tokens granting elevated privileges (see ({{?I-D.ietf-oauth-attestation-based-client-auth}})).
 The `insufficient_client_authorization` mechanism allows the Authorization Server to escalate the authentication requirement without the Client needing to speculatively include high-assurance credentials on every request.
 
 # Conventions and Definitions
@@ -107,14 +107,14 @@ In addition, the document uses the following terms:
 **Challenge Session**:
 : A string managed by the Authorization Server that serves as the nonce in the challenge-response pattern. It associates an Insufficient Client Authorization Response with the subsequent request that satisfies it.
 
-# Insufficient Client Authorization Response (#error-response)
+# Insufficient Client Authorization Response {#error-response}
 
 This document registers the error code `insufficient_client_authorization` for use in OAuth 2.0 token endpoint error responses as defined in Section 5.2 of {{RFC6749}}.
 
 The following content applies to the Insufficient Client Authorization Response.
 
 - `error`: REQUIRED. The `error` parameter MUST be `insufficient_client_authorization`.
-- `authorization_requirement`: REQUIRED. The `authorization_requirement` parameter is a typed JSON object as defined in [](#authorization-requirement).
+- `authorization_requirement`: REQUIRED. The `authorization_requirement` parameter is a typed JSON object as defined in {{authorization-requirement}}.
 
 The Authorization Server MUST comply with Section 5.2 of {{RFC6749}}. This implies that the Authorization Server MUST respond with HTTP status code `400 (Bad Request)`. It MAY include other parameters in the response. The Client MUST ignore any parameters it does not understand.
 
@@ -165,7 +165,7 @@ The following members are defined for all `authorization_requirement` types:
 
 Each profile of this document that specifies a type of Authorization Requirement also MUST define how the Client can fulfill the challenge and provide the required input to the Authorization Server.
 
-If the Client does not understand the `type` of the `authorization_requirement` of an Insufficient Client Authorization Response or if it cannot satisfy the requirements, the Client MUST treat the Insufficient Client Authorization Response as if the Authorization Server returned an `unauthorized_client` error as defined in Section 5.2 in {{!RFC6749}}, see also {#error-response}.
+If the Client does not understand the `type` of the `authorization_requirement` of an Insufficient Client Authorization Response or if it cannot satisfy the requirements, the Client MUST treat the Insufficient Client Authorization Response as if the Authorization Server returned an `unauthorized_client` error as defined in Section 5.2 in {{!RFC6749}}, see also {{error-response}}.
 
 Some extensions to OAuth 2.0, notably Pushed Authorization Requests {{?RFC9126}}, make use of the token endpoint response outside a token endpoint request. A profile that defines an Authorization Requirement type SHOULD define mechanisms to fulfill the requirements that are applicable to authorization and token requests alike.
 
