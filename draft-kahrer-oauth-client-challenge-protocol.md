@@ -34,6 +34,18 @@ author:
 normative:
 
 informative:
+  Mastercard.VI:
+    title: Verifiable Intent (VI) — Specification Overview
+    target: https://verifiableintent.dev/spec/
+    author:
+      - name: Verifiable Intent Working Group
+    date: February 2026
+  OpenID.Native-SSO:
+    title: OpenID Connect Native SSO for Mobile Apps
+    target: https://openid.net/specs/openid-connect-native-sso-1_0.html
+    author:
+      - ins: G. Fletcher
+    date: November 2022
 
 entity:
   SELF: "[draft-kahrer-oauth-client-challenge-protocol-latest]"
@@ -67,15 +79,6 @@ This document extends the OAuth 2.0 Authorization Framework by introducing:
 3. Processing rules for both parties, including the requirement to return
    `unauthorized_client` when subsequently provided input fails validation.
 
-## Comparison with OAuth 2.0 First-Party Applications
-
-OAuth 2.0 First-Party Applications {{?I-D.ietf-oauth-first-party-apps}} defines an API for user authentication where the authorization server challenges the OAuth 2.0 client to provide data from the user. The proposed API is similar to the mechanism defined in this document. However, there is a subtle difference: OAuth 2.0 First-Party Applications defines a new error code for the client to provide more data from the end-user (Resource Owner). Its main purpose is to enable clients to control the user experience. For that it makes two important assumptions:
-
-- The client can interact with an end-user.
-- The client is trusted to handle sensitive data like the end-user's credentials, i.e., the client is a first-party application.
-
-The extension in this document is different because it assumes that the client can satisfy the challenge from the Authorization Requirement itself. It is applicable for both first- and third-party use cases where the authorization server challenges the client to provide more input about itself without involving an end-user. The client does not have to handle end-user credentials. What's more, it does not require an additional endpoint but extends the Token Response. In this way, the extension specifically targets non-interactive OAuth flows between the client and authorization server.
-
 ## Motivation and Use Cases
 
 ### Just-in-Time Authorization
@@ -93,18 +96,27 @@ The `insufficient_client_authorization` mechanism allows the authorization serve
 
 The security state of a system can change at any time. Systems may communicate via signals about certain security-relevant events that they observed for other systems to adopt. In such an environment the authorization server may receive signals that constitute the need for additional input for authorization to e.g., mitigate attacks and prevent misuse.
 
+## Comparison with OAuth 2.0 First-Party Applications
+
+OAuth 2.0 First-Party Applications {{?I-D.ietf-oauth-first-party-apps}} defines an API for user authentication where the authorization server challenges the OAuth 2.0 client to provide data from the user. The proposed API is similar to the mechanism defined in this document. However, there is a subtle difference: OAuth 2.0 First-Party Applications defines a new error code for the client to provide more data from the end-user (Resource Owner). Its main purpose is to enable clients to control the user experience. For that it makes two important assumptions:
+
+- The client can interact with an end-user.
+- The client is trusted to handle sensitive data like the end-user's credentials, i.e., the client is a first-party application.
+
+The extension in this document is different because it assumes that the client can satisfy the challenge from the Authorization Requirement itself. It is applicable for both first- and third-party use cases where the authorization server challenges the client to provide more input about itself without involving an end-user. The client does not have to handle end-user credentials. What's more, it does not require an additional endpoint but extends the token response. In this way, the extension specifically targets non-interactive OAuth flows between the client and authorization server.
+
 # Conventions and Definitions
 
 {::boilerplate bcp14-tagged}
 
 # Terminology
 
-This document uses the terms "Access Token", "Authorization Code", "Authorization Request", "authorization server", "client", "client Authentication", "Protected Resource", "Resource Server", "Token Response", and "Token Endpoint" as defined by the OAuth 2.0 Authorization Framework {{RFC6749}}, unless otherwise specified by this document.
+This document uses the terms "access token", "authorization server", "client", "client authentication", "token response", "token request" and "token endpoint" as defined by the OAuth 2.0 Authorization Framework {{RFC6749}}, unless otherwise specified by this document.
 
 In addition, the document uses the following terms:
 
 **Insufficient Client Authorization Response**:
-: An error response for the OAuth 2.0 token endpoint that indicates to the client that the authorization server requires additional input for it to authorize the client.
+: A token error response from the OAuth 2.0 token endpoint that indicates to the client that the authorization server requires additional input for it to authorize the client.
 
 **Authorization Requirement**:
 : A typed JSON object returned by the authorization server in an Insufficient Client Authorization Response that specifies the additional material the client must supply.
@@ -236,11 +248,7 @@ This document defines the following values for the IANA "OAuth Dynamic Client Re
 **Specification Document**: {{client-metadata}} of {{&SELF}}
 --- back
 
-# Appendix
-{:numbered="false"}
-
-## Example with Authorization Details
-{:numbered="false"}
+# Example with Authorization Details
 
 The following is an example that illustrates a token request using `authorization_details` as defined in {{?RFC9396}}.
 The authorization details indicate that the client aims to operate in an open banking ecosystem that has certain requirements.
@@ -258,7 +266,7 @@ authorization_details=%5B%7B%22type%22%3A%22payment_initiation%22%2C%22actions%2
 
 ~~~
 
-The client needs to prove that it complies with the requirements, so the authorization server challenges the client and responds with a Insufficient Client Authorization Response. The authorization server requests from the client the presentation of a verifiable credentials, e.g., a verifiable intent ([Verifiable Intent (VI) — Specification Overview](https://verifiableintent.dev/spec/)).
+While the client authentication already provides some information about the provenance of the running software, the client also needs to prove that it complies with the requirements. Therefore, the authorization server challenges the client and responds with a Insufficient Client Authorization Response. The authorization server requests from the client the presentation of a verifiable credentials, e.g., a verifiable intent {{Mastercard.VI}}.
 
 ~~~
 HTTP/1.1 403 Forbidden
@@ -278,7 +286,9 @@ Cache-Control: no-store
 # Acknowledgments
 {:numbered="false"}
 
-TODO acknowledge.
+The author wants to thank the following people for their feedback, input and contributions to this document:
+
+Jacob Ideskog, Michał Trojanowski
 
 # Document History
 {:numbered="false"}
