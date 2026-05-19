@@ -55,25 +55,22 @@ entity:
 
 This document extends the OAuth 2.0 token endpoint error response (RFC 6749) with a new error code that indicates to the client that it must provide additional input for the authorization server to authorize it and accept its request.
 
-This mechanism enables just-in-time authorization flows in which the authorization server dynamically challenges the client during a request, for example, to obtain an assertion, a Verifiable Presentation, or other proof-of-possession material mid-flow without an end-user being present.
+This mechanism enables just-in-time authorization flows in which the authorization server dynamically challenges the client during a request and the client tries to satisfy it. For example, the authorization server can ask the client mid-flow to provide an assertion, a verifiable presentation, or other proof-of-possession material.
 
 --- middle
 
 # Introduction
 
-The OAuth 2.0 Authorization Framework {{!RFC6749}} assumes that whenever a Resource Owner needs to provide a grant, the client
-can trigger an interactive flow to get that grant which delegates access to the client. Within those assumptions, the authorization server can utilize user prompts to increase the confidence in the grant because interactive flows imply that the Resource Owner is present. However, this is not always the case. clients may act on the behalf of a Resource Owner without the Resource Owner being present. In such cases, an interactive flow is not applicable to collect a grant or request additional input.
-
-The OAuth 2.0 Authorization Framework {{!RFC6749}} also assumes that a single grant signaled through the `grant_type` parameter is sufficient for the authorization server to authorize the client. It does not define how the authorization server signals to the client to provide additional input for it to make a decision - like an additional grant from the Resource Owner or an attestation artifact to prove the client's provenance.
+The OAuth 2.0 Authorization Framework {{!RFC6749}} assumes that a single grant signaled through the `grant_type` parameter is sufficient for the authorization server to authorize the client. It does not define how the authorization server signals to the client to provide additional input for it to make a decision - like an additional grant from the Resource Owner or an attestation artifact to prove the client's provenance.
 
 Real-world deployments increasingly require the authorization server to apply dynamic, contextual authorization policies — for example:
 
 - Demanding a freshly signed client attestation when risk signals indicate an elevated threat level.
 - Requiring the client to prove its mandate before a high-value token is issued.
 
-This document extends the OAuth 2.0 Authorization Framework by introducing:
+This document introduces a way for the authorization server to start a challenge session where it defines requirements that it expects from the client. It extends the OAuth 2.0 Authorization Framework by introducing the following parameters:
 
-1. A new error code `insufficient_client_authorization` that the authorization server returns when it cannot proceed without additional client-supplied material.
+1. A new error code `insufficient_client_authorization` for token error responses that the authorization server returns when it cannot proceed without additional client-supplied material.
 2. A companion response parameter `authorization_requirement` — a typed JSON object
    that describes what the authorization server requires.
 3. Processing rules for both parties, including the requirement to return
@@ -83,14 +80,14 @@ This document extends the OAuth 2.0 Authorization Framework by introducing:
 
 ### Just-in-Time Authorization
 
-Whether and in which form an authorization server may return an access token to a client depends not only on the presented grant and requested access but also on the capabilities of the client, e.g., whether it is a public client or a confidential client, whether it is a first-party client or a third-party client. Just-in-time authorization means that the authorization server can, dynamically and on demand, evaluate necessary data from different sources to accept or deny a token request from a client.
+Whether and in which form an authorization server may return an access token to a client depends not only on the presented grant and requested access but also on the capabilities of the client, e.g., whether it is a public client or a confidential client, whether it is a first-party client or a third-party client. Just-in-time authorization means that the authorization server can, dynamically and on demand, evaluate necessary data from different sources to understand the context of a request and use that information to accept or deny a token request from a client.
 
 In a just-in-time flow, the authorization server defers its final authorization decision, challenges the client for supplemental proof material, and only then either grants or denies the request.
 
 ### Client Authentication Step-Up
 
 An authorization server may accept client authentication for low-assurance tokens but require an attestation for tokens granting elevated privileges (see ({{?I-D.ietf-oauth-attestation-based-client-auth}})).
-The `insufficient_client_authorization` mechanism allows the authorization server to escalate the authentication requirement without the client needing to speculatively include high-assurance credentials on every request.
+The `insufficient_client_authorization` mechanism allows the authorization server to escalate the authentication requirement without the client needing to speculatively include high-assurance credentials on every request. It allows, for example, public clients to increase their trust profile.
 
 ### Continuos Authorization
 
@@ -103,7 +100,7 @@ OAuth 2.0 First-Party Applications {{?I-D.ietf-oauth-first-party-apps}} defines 
 - The client can interact with an end-user.
 - The client is trusted to handle sensitive data like the end-user's credentials, i.e., the client is a first-party application.
 
-The extension in this document is different because it assumes that the client can satisfy the challenge from the Authorization Requirement itself. It is applicable for both first- and third-party use cases where the authorization server challenges the client to provide more input about itself without involving an end-user. The client does not have to handle end-user credentials. What's more, it does not require an additional endpoint but extends the token response. In this way, the extension specifically targets non-interactive OAuth flows between the client and authorization server.
+The extension in this document is different because it assumes that the client can satisfy the challenge from the Authorization Requirement itself. It is applicable for both first- and third-party use cases where the authorization server challenges the client to provide additional input for the authorization grant. The client does not have to handle end-user credentials. What's more, it does not require an additional endpoint but extends the token response.
 
 # Conventions and Definitions
 
@@ -131,20 +128,20 @@ This document registers the error code `insufficient_client_authorization` for u
 The following content applies to the Insufficient Client Authorization Response.
 
 `error`:
-:     REQUIRED. The `error` parameter MUST be `insufficient_client_authorization`.
+: REQUIRED. The `error` parameter MUST be `insufficient_client_authorization`.
 
 `authorization_requirement`:
-:     REQUIRED. The `authorization_requirement` parameter is a typed JSON object as defined in {{authorization-requirement}}.
+: REQUIRED. The `authorization_requirement` parameter is a typed JSON object as defined in {{authorization-requirement}}.
 
 `challenge_session`:
-:     REQUIRED. An opaque identifier generated by the authorization server that binds this authorization challenge to the follow-up request.
+: REQUIRED. An opaque identifier generated by the authorization server that binds this authorization challenge to the follow-up request.
 
-      The client MUST include this value in the subsequent request to the authorization server if it receives one along with the `insufficient_client_authorization` error response.
+  The client MUST include this value in the subsequent request to the authorization server if it receives one along with the `insufficient_client_authorization` error response.
 
 `expires_in`:
-:     OPTIONAL. A JSON number that defines the number of seconds from the time of the Insufficient Client Authorization Response until the `challenge_session` expires.
+: OPTIONAL. A JSON number that defines the number of seconds from the time of the Insufficient Client Authorization Response until the `challenge_session` expires.
 
-      The client MUST NOT submit a response after this time.
+  The client MUST NOT submit a response after this time.
 
 The authorization server MUST comply with Section 5.2 of {{RFC6749}}. The authorization server SHOULD respond with HTTP status code `403 (Forbidden)`. It MAY include other parameters in the response. The client MUST ignore any parameters it does not understand.
 
@@ -180,14 +177,16 @@ The `authorization_requirement` parameter holds a JSON object that indicates wha
 The following member is defined for all `authorization_requirement` types:
 
 `type`:
-:   REQUIRED. An absolute URI or a string identifying the authorization requirement type.
-    The value determines the semantics of other members in the object.
+: REQUIRED. An absolute URI or a string identifying the authorization requirement type.
+  The value determines the semantics of other members in the object.
 
 # Providing Authorization Requirement
 
 Each profile of this document that specifies a type of Authorization Requirement also MUST define how the client can fulfill the challenge and provide the required input to the authorization server.
 
 If the client does not understand the `type` of the `authorization_requirement` of an Insufficient Client Authorization Response or if it cannot satisfy the requirement, the client MUST treat the Insufficient Client Authorization Response as if the authorization server returned an `unauthorized_client` error as defined in Section 5.2 in {{!RFC6749}}, see also {{error-response}}.
+
+The client MUST include the `challenge_session` parameter with the same value as it received in the Insufficient Client Authorization Response in its subsequent request and attempt to resolve the challenge.
 
 Some extensions to OAuth 2.0, notably Pushed Authorization Requests {{?RFC9126}}, make use of the token endpoint response outside a token endpoint request. A profile that defines an Authorization Requirement type SHOULD define mechanisms to fulfill the requirements that are applicable to authorization and token requests alike.
 
@@ -204,8 +203,13 @@ This enables authorization servers to apply this specification without breaking 
 
 # Security Considerations
 
-TODO Security
+## Sender-Constrained Tokens
 
+The authorization server SHOULD issue sender-constrained tokens as a result of a successfully resolved client authorization challenge. In this way, the authorization server can mitigate the risk of token theft and replay. The idea is that the authorization server binds the token to a public key that the client controls. For the token to be valid, the client MUST provide a proof-of-possession that satisfies that key binding. The exact methods on how the authorization server binds the token to the client's key and how the client provides a proof-of-possession are out of scope of this document. Demonstrating Proof-of-Possession (DPoP) {{?RFC9449}} and certificate-bound access tokens {{?RFC8705}} are two examples, and there may be others.
+
+## Challenge Session
+
+The `challenge_session` parameter associates a Insufficient Client Authorization Response with follow-up resolution attempts. To mitigate session hijacking and replay, the authorization server SHOULD bind the `challenge_session` to the device requesting tokens, for example via DPoP. Similar to sender-constrained tokens, the binding prevents other devices from replaying a captured `challenge_session` and thus prevents other devices from taking over sessions (session hijacking).
 
 # IANA Considerations
 
