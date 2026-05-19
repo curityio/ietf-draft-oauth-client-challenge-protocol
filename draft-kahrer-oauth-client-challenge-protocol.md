@@ -1,5 +1,5 @@
 ---
-title: "OAuth client Challenge Protocol"
+title: "OAuth Client Challenge Protocol"
 category: std
 
 docname: draft-kahrer-oauth-client-challenge-protocol-latest
